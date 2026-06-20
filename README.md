@@ -9,7 +9,7 @@ Define test data as Ruby classes ("scenes") that create ActiveRecord records onc
 1. You define scene classes that create records and return named references
 2. All global scenes are loaded once before the test suite inside a database transaction
 3. Each test runs inside a savepoint — modifications roll back automatically
-4. Accessors like `small_project(:project)` return fresh records from the DB
+4. Accessors like `small_project(:project)` load records from the DB (cached within each test)
 5. Scenes can also be used as seed data for development
 
 ## Installation
@@ -63,9 +63,9 @@ spec/
     003_large_project_scene.rb
 ```
 
-Files are loaded in sorted order. Use numeric prefixes to control the sequence.
+Files are loaded in sorted order. Scene files must be named `*_scene.rb`. Use numeric prefixes to control load order.
 
-The default scenes path is resolved lazily: `test/scenes` for Minitest, `spec/scenes` when RSpec is loaded at test time. Override explicitly if needed:
+The default scenes path is `test/scenes`, or `spec/scenes` when RSpec is loaded at test time. RSpec-only apps should configure the path explicitly — seeds and rake tasks run outside the test suite and default to `test/scenes`:
 
 ```ruby
 MoScenes.configure do |config|
@@ -202,10 +202,18 @@ end
 Load it explicitly in a test:
 
 ```ruby
+# Minitest
 test "large project has many todos" do
   load_scene(:large_project)
   project = large_project(:project)
   assert_equal 15, project.todos.count
+end
+
+# RSpec
+it "has many todos" do
+  load_scene(:large_project)
+  project = large_project(:project)
+  expect(project.todos.count).to eq(15)
 end
 ```
 
@@ -226,7 +234,7 @@ Scenes can double as seed data for development:
 
 ```ruby
 # db/seeds.rb
-require "mo_scenes/seed_helper"
+require "mo_scenes"
 
 MoScenes.load_all                        # all global scenes
 MoScenes.load_only(:users, :small_project)  # specific scenes
@@ -249,7 +257,7 @@ Per test:      Rails savepoint -> Test runs -> Rollback savepoint
 After suite:   Rollback outer transaction (DB returns to clean state)
 ```
 
-This requires `use_transactional_tests = true` (the Rails default).
+Requires transactional tests (`use_transactional_tests = true` for Minitest; `use_transactional_tests` or `use_transactional_fixtures` for RSpec via rspec-rails).
 
 ## Configuration
 
@@ -261,8 +269,8 @@ This requires `use_transactional_tests = true` (the Rails default).
 
 - Ruby >= 3.0
 - Rails >= 7.0 (ActiveRecord + ActiveSupport)
-- Minitest or RSpec
-- `use_transactional_tests = true` (Minitest) or `use_transactional_tests = true` / `use_transactional_fixtures = true` (RSpec)
+- Minitest or RSpec (with rspec-rails)
+- Transactional tests enabled (see Transaction Lifecycle above)
 
 ## License
 
