@@ -91,4 +91,21 @@ RSpec.describe "MoScenes RSpec integration" do
     fresh = small_project(:project, reload: true)
     expect(fresh.name).to eq("Modified")
   end
+
+  it "does not leak in-memory mutations across example instances" do
+    MoScenes.runner.ensure_global_scenes_loaded!
+
+    example_class = Class.new { include MoScenes::RSpecHelper }
+    first_example = example_class.new
+    second_example = example_class.new
+
+    project_in_first = first_example.small_project(:project)
+    project_in_first.name = "Mutated in memory"
+
+    project_in_second = second_example.small_project(:project)
+    expect(project_in_second.name).to eq("Small Project")
+    expect(project_in_second.object_id).not_to eq(project_in_first.object_id)
+
+    expect(first_example.small_project(:project).name).to eq("Mutated in memory")
+  end
 end
