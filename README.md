@@ -20,6 +20,25 @@ Add to your Gemfile:
 gem "mo_scenes"
 ```
 
+## AI Coding Assistants
+
+MoScenes includes an assistant-friendly skill document for LLMs that are helping you create or edit scenes.
+
+Generate it into your Rails app:
+
+```bash
+bin/rails generate mo_scenes:ai_skill
+```
+
+By default this writes `docs/ai/mo-scenes-skill.md`. You can also use a named assistant target:
+
+```bash
+bin/rails generate mo_scenes:ai_skill claude
+bin/rails generate mo_scenes:ai_skill cursor
+```
+
+The `claude` target writes `.claude/skills/mo-scenes/SKILL.md`. The `cursor` target writes `.cursor/rules/mo_scenes.mdc`. You can also pass a custom destination path.
+
 ## Setup
 
 ### 1. Create a scenes directory
