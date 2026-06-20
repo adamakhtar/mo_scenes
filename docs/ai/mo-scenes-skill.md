@@ -1,6 +1,6 @@
 ---
 name: mo-scenes
-description: Use MoScenes in Rails test suites. Apply when creating, editing, or reviewing MoScenes scene files, replacing fixtures or factories, setting up scene-based test data, writing tests that consume scenes, or debugging MoScenes scene loading and accessor errors.
+description: Use MoScenes in Rails test suites. Apply when creating, editing, or reviewing MoScenes scene files, replacing fixtures or factories, setting up scene-based test data, writing Minitest or RSpec tests that consume scenes, or debugging MoScenes scene loading and accessor errors.
 ---
 
 # MoScenes
@@ -22,13 +22,16 @@ A scene is a Ruby class that inherits from `MoScenes::Scene` and implements `cal
 Scene files usually live in:
 
 ```text
-test/scenes/
+test/scenes/   # Minitest apps
+spec/scenes/   # RSpec apps
 ```
+
+The default path is resolved lazily at test run time: `spec/scenes` when RSpec is loaded, otherwise `test/scenes`.
 
 Files are loaded in sorted filename order. Prefer numeric prefixes when scenes depend on earlier scenes:
 
 ```text
-test/scenes/
+test/scenes/   # or spec/scenes/
   001_users_scene.rb
   002_small_project_scene.rb
 ```
@@ -82,6 +85,8 @@ If a scene depends on another scene, ensure the dependency file sorts earlier. D
 
 Scene names become helper methods. Record names are passed as symbols.
 
+**Minitest:**
+
 ```ruby
 class ProjectTest < ActiveSupport::TestCase
   test "project belongs to admin" do
@@ -89,6 +94,19 @@ class ProjectTest < ActiveSupport::TestCase
     admin = users(:admin)
 
     assert_equal admin.id, project.user_id
+  end
+end
+```
+
+**RSpec:**
+
+```ruby
+RSpec.describe Project do
+  it "belongs to admin" do
+    project = small_project(:project)
+    admin = users(:admin)
+
+    expect(project.user_id).to eq(admin.id)
   end
 end
 ```
@@ -135,7 +153,7 @@ Per-test scene data is created inside the test transaction/savepoint and rolls b
 
 ## Setup
 
-In `test/test_helper.rb`:
+**Minitest** — in `test/test_helper.rb`:
 
 ```ruby
 require "mo_scenes"
@@ -145,13 +163,25 @@ class ActiveSupport::TestCase
 end
 ```
 
+**RSpec** — in `spec/rails_helper.rb`:
+
+```ruby
+require "mo_scenes/rspec"
+
+MoScenes::RSpec.install!(RSpec.configuration)
+```
+
 MoScenes expects Rails transactional tests:
 
 ```ruby
+# Minitest
 self.use_transactional_tests = true
+
+# RSpec (rspec-rails 6+)
+config.use_transactional_tests = true
 ```
 
-If not using the Railtie, configure the scenes path:
+If not using the Railtie, configure the scenes path explicitly:
 
 ```ruby
 MoScenes.configure do |config|
@@ -182,15 +212,16 @@ bin/rails db:scenes:load
 
 When asked to create or edit MoScenes scenes:
 
-1. Inspect existing `test/scenes` files and preserve naming/order conventions.
-2. Inspect relevant ActiveRecord models, validations, required associations, and database constraints.
-3. Prefer existing global scene records over creating duplicate per-test data.
-4. Put shared baseline records in global scenes.
-5. Put expensive or narrow scenario data in `self.global = false` scenes.
-6. Return every record that tests should access from `call`.
-7. Use `scene(:dependency).record_name` instead of duplicating records across scenes.
-8. Update or add tests to consume scenes through helper accessors.
-9. Run the relevant Rails tests if available.
+1. Detect whether the app uses Minitest or RSpec, then choose the correct setup and scenes directory (`test/scenes` vs `spec/scenes`).
+2. Inspect existing scene files and preserve naming/order conventions.
+3. Inspect relevant ActiveRecord models, validations, required associations, and database constraints.
+4. Prefer existing global scene records over creating duplicate per-test data.
+5. Put shared baseline records in global scenes.
+6. Put expensive or narrow scenario data in `self.global = false` scenes.
+7. Return every record that tests should access from `call`.
+8. Use `scene(:dependency).record_name` instead of duplicating records across scenes.
+9. Update or add tests to consume scenes through helper accessors.
+10. Run the relevant Rails tests if available.
 
 ## Avoid
 
@@ -210,9 +241,10 @@ Do not mark large scenario-specific scenes as global unless many tests need them
 
 If an accessor is missing, check that:
 
-- `MoScenes::TestHelper` is included in `ActiveSupport::TestCase`
+- Minitest: `MoScenes::TestHelper` is included in `ActiveSupport::TestCase`
+- RSpec: `MoScenes::RSpec.install!(RSpec.configuration)` is called in `rails_helper.rb`
 - the scene class name ends with `Scene`
-- the scene file is under the configured scenes path
+- the scene file is under the configured scenes path (`test/scenes` or `spec/scenes`)
 - the scene file loaded before dependent scenes
 - the accessor name matches the scene name, e.g. `SmallProjectScene` -> `small_project`
 

@@ -55,7 +55,7 @@ require_relative "mo_scenes/scene_result"
 require_relative "mo_scenes/registry"
 require_relative "mo_scenes/scene"
 require_relative "mo_scenes/runner"
-require_relative "mo_scenes/test_helper"
+require_relative "mo_scenes/example_group_helper"
 require_relative "mo_scenes/seed_helper"
 
 module MoScenes

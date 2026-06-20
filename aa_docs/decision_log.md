@@ -119,11 +119,15 @@ end
 
 **Why:** Works naturally because `ensure_global_scenes_loaded!` is idempotent per-process, and class-level instance variables on Registry are per-process after fork. No special handling needed.
 
-### 14. Test framework — Minitest only for v1
+### 14. Test framework support — Minitest and RSpec
 
-**Decision:** Only Minitest support in v1.
+**Decision:** Framework-specific code lives in `lib/mo_scenes/minitest/` and `lib/mo_scenes/rspec/`. Shared example API is in `MoScenes::ExampleGroupHelper`; dynamic accessors are defined there by Runner.
 
-**Why:** Matches the user's other `mo_*` gems. RSpec support can be added later as a separate module without changing core architecture.
+**Minitest:** `MoScenes::TestHelper` (alias for `MoScenes::Minitest::TestHelper`) prepends lifecycle hooks on `before_setup` / `after_teardown`. `Minitest.after_run` rolls back the outer transaction.
+
+**RSpec:** Opt-in via `require "mo_scenes/rspec"` and `MoScenes::RSpec.install!(RSpec.configuration)`. Uses `prepend_before(:each)`, `append_after(:each)`, and `after(:suite)` for the same lifecycle.
+
+**Scenes path:** Resolved lazily in `Configuration#scenes_path` — `spec/scenes` when `defined?(RSpec)` at test run time, otherwise `test/scenes`. Explicit `MoScenes.configure` override always wins.
 
 ---
 
@@ -143,9 +147,9 @@ end
 
 ### RSpec support
 
-**Status:** Deferred to a future version.
+**Status:** Implemented.
 
-**Context:** RSpec integration would use a shared context or `config.include` instead of Minitest's module inclusion. The core gem (Scene, Registry, Runner) is framework-agnostic — only `TestHelper` is Minitest-specific. Adding RSpec support later would mean creating a `MoScenes::RSpecHelper` module.
+**Context:** `MoScenes::RSpec.install!` registers RSpec hooks mirroring Minitest lifecycle. Shared accessors via `ExampleGroupHelper`.
 
 ### Deterministic IDs (hash-based like fixtures)
 

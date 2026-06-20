@@ -4,7 +4,7 @@ require "active_record"
 
 module MoScenes
   # Orchestrates scene file loading, the suite-wide outer transaction, and
-  # dynamic accessor methods on TestHelper (e.g. users(:admin)).
+  # dynamic accessor methods on ExampleGroupHelper (e.g. users(:admin)).
   #
   # Global flow: load files -> begin outer transaction -> run global scenes ->
   # define accessors. Per-test flow: load_scene runs one scene inside the current
@@ -105,10 +105,10 @@ module MoScenes
     end
 
     def define_single_accessor_method!(scene_name)
-      return if MoScenes::TestHelper.method_defined?(scene_name)
+      return if MoScenes::ExampleGroupHelper.method_defined?(scene_name)
 
-      MoScenes::TestHelper.define_method(scene_name) do |*record_names, reload: false|
-        # @scene_cache lives on each test example instance (not on TestHelper itself),
+      MoScenes::ExampleGroupHelper.define_method(scene_name) do |*record_names, reload: false|
+        # @scene_cache lives on each test example instance (not on ExampleGroupHelper itself),
         # so it is empty at the start of every example. The first lookup per record
         # calls Model.find(pk) and caches that object for the rest of the example.
         # Unsaved in-memory mutations on a cached record only affect later calls in

@@ -43,6 +43,8 @@ The `claude` target writes `.claude/skills/mo-scenes/SKILL.md`. The `cursor` tar
 
 ### 1. Create a scenes directory
 
+Minitest apps:
+
 ```
 test/
   scenes/
@@ -51,17 +53,44 @@ test/
     003_large_project_scene.rb
 ```
 
+RSpec apps:
+
+```
+spec/
+  scenes/
+    001_users_scene.rb
+    002_small_project_scene.rb
+    003_large_project_scene.rb
+```
+
 Files are loaded in sorted order. Use numeric prefixes to control the sequence.
+
+The default scenes path is resolved lazily: `test/scenes` for Minitest, `spec/scenes` when RSpec is loaded at test time. Override explicitly if needed:
+
+```ruby
+MoScenes.configure do |config|
+  config.scenes_path = Rails.root.join("spec", "scenes").to_s
+end
+```
 
 ### 2. Include the test helper
 
+**Minitest** — in `test/test_helper.rb`:
+
 ```ruby
-# test/test_helper.rb
 require "mo_scenes"
 
 class ActiveSupport::TestCase
   include MoScenes::TestHelper
 end
+```
+
+**RSpec** — in `spec/rails_helper.rb`:
+
+```ruby
+require "mo_scenes/rspec"
+
+MoScenes::RSpec.install!(RSpec.configuration)
 ```
 
 If you're not using the Railtie (e.g. outside Rails), configure the scenes path:
@@ -109,6 +138,8 @@ end
 
 ## Using Scenes in Tests
 
+**Minitest:**
+
 ```ruby
 class ProjectTest < ActiveSupport::TestCase
   test "project belongs to admin" do
@@ -120,6 +151,23 @@ class ProjectTest < ActiveSupport::TestCase
   test "fetch multiple records" do
     project, todo = small_project(:project, :shopping_todo)
     assert_equal project, todo.project
+  end
+end
+```
+
+**RSpec:**
+
+```ruby
+RSpec.describe Project do
+  it "belongs to admin" do
+    project = small_project(:project)
+    admin = users(:admin)
+    expect(project.user_id).to eq(admin.id)
+  end
+
+  it "fetches multiple records" do
+    project, todo = small_project(:project, :shopping_todo)
+    expect(todo.project).to eq(project)
   end
 end
 ```
@@ -207,13 +255,14 @@ This requires `use_transactional_tests = true` (the Rails default).
 
 | Option | Default | Description |
 |---|---|---|
-| `scenes_path` | `Rails.root.join("test", "scenes")` | Directory containing scene files |
+| `scenes_path` | `test/scenes` or `spec/scenes` (lazy, based on whether RSpec is loaded) | Directory containing scene files |
 
 ## Requirements
 
 - Ruby >= 3.0
 - Rails >= 7.0 (ActiveRecord + ActiveSupport)
-- `use_transactional_tests = true`
+- Minitest or RSpec
+- `use_transactional_tests = true` (Minitest) or `use_transactional_tests = true` / `use_transactional_fixtures = true` (RSpec)
 
 ## License
 

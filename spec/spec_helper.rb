@@ -18,3 +18,10 @@ module SceneTestSetup
     end
   end
 end
+
+module MoScenesTestReset
+  def before_setup
+    setup_mo_scenes
+    super
+  end
+end

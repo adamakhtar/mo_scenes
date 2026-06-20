@@ -4,12 +4,6 @@ require "rails/railtie"
 
 module MoScenes
   class Railtie < Rails::Railtie
-    initializer "mo_scenes.set_defaults" do
-      MoScenes.configure do |config|
-        config.scenes_path ||= Rails.root.join("test", "scenes").to_s
-      end
-    end
-
     rake_tasks do
       namespace :db do
         namespace :scenes do

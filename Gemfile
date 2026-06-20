@@ -7,6 +7,7 @@ gemspec
 group :development, :test do
   gem "rake"
   gem "minitest"
+  gem "rspec"
   gem "railties", ">= 7.0"
   gem "sqlite3"
 end

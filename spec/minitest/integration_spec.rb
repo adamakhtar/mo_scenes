@@ -1,18 +1,15 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "mo_scenes/test_helper"
 
 class IntegrationSpec < Minitest::Test
   include SceneTestSetup
   include MoScenes::TestHelper
-
-  def setup
-    setup_mo_scenes
-    before_setup
-  end
+  prepend MoScenesTestReset
 
   def teardown
-    after_teardown
+    super
     MoScenes.reset!
     [Todo, Project, User].each(&:delete_all)
   end
@@ -84,6 +81,8 @@ class IntegrationSpec < Minitest::Test
   end
 
   def test_in_memory_mutations_do_not_leak_across_test_instances
+    MoScenes.runner.ensure_global_scenes_loaded!
+
     example_class = Class.new { include MoScenes::TestHelper }
     first_example = example_class.new
     second_example = example_class.new
