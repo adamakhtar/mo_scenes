@@ -8,24 +8,25 @@ require_relative "../dummy/app/models/user"
 require_relative "../dummy/app/models/project"
 require_relative "../dummy/app/models/todo"
 
-SCENES_PATH = File.expand_path("../dummy/test/scenes", __dir__)
+require_relative "support/scenes_path"
+require_relative "support/mo_scenes"
 
 RSpec.configure do |config|
-  MoScenes::RSpec.install!(config)
+  MoScenesRSpecSupport.install!(config)
 
-  config.prepend_before(:each) do
+  config.prepend_before(:each, :mo_scenes_integration) do
     MoScenes.reset!
     MoScenes.configure { |c| c.scenes_path = SCENES_PATH }
     [Todo, Project, User].each(&:delete_all)
   end
 
-  config.append_after(:each) do
+  config.append_after(:each, :mo_scenes_integration) do
     MoScenes.reset!
     [Todo, Project, User].each(&:delete_all)
   end
 end
 
-RSpec.describe "MoScenes RSpec integration" do
+RSpec.describe "MoScenes RSpec integration", :mo_scenes_integration do
   it "loads global scenes" do
     expect(MoScenes.runner.global_loaded?).to be true
   end

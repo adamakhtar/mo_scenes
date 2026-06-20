@@ -55,6 +55,29 @@ class MinitestTestHelperSpec < Minitest::Test
     test_class.new(:test_example).run
     refute MoScenes.registry.loaded?(:large_project)
   end
+
+  def test_global_scenes_run_once_across_multiple_examples
+    setup_mo_scenes
+    call_count = 0
+    runner = MoScenes.runner
+    original_run_global = runner.method(:run_global_scenes!)
+    runner.define_singleton_method(:run_global_scenes!) do
+      call_count += 1
+      original_run_global.call
+    end
+
+    test_class = Class.new(Minitest::Test) do
+      include MoScenes::TestHelper
+
+      define_method(:test_first) { assert_equal "Admin", users(:admin).name }
+      define_method(:test_second) { assert_equal "Member", users(:member).name }
+    end
+
+    test_class.new(:test_first).run
+    test_class.new(:test_second).run
+
+    assert_equal 1, call_count
+  end
 end
 
 class MinitestSuiteTeardownSpec < Minitest::Test
