@@ -95,6 +95,12 @@ module MoScenes
       return if MoScenes::TestHelper.method_defined?(scene_name)
 
       MoScenes::TestHelper.define_method(scene_name) do |*record_names, reload: false|
+        # @scene_cache lives on each test example instance (not on TestHelper itself),
+        # so it is empty at the start of every example. The first lookup per record
+        # calls Model.find(pk) and caches that object for the rest of the example.
+        # Unsaved in-memory mutations on a cached record only affect later calls in
+        # the same example; the next example gets a fresh find. Pass reload: true to
+        # bypass the cache within an example.
         @scene_cache ||= {}
         @scene_cache[scene_name] ||= {}
         results = record_names.map do |rn|

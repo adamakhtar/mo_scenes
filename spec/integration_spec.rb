@@ -82,4 +82,19 @@ class IntegrationSpec < Minitest::Test
     fresh = small_project(:project, reload: true)
     assert_equal "Modified", fresh.name
   end
+
+  def test_in_memory_mutations_do_not_leak_across_test_instances
+    example_class = Class.new { include MoScenes::TestHelper }
+    first_example = example_class.new
+    second_example = example_class.new
+
+    project_in_first = first_example.small_project(:project)
+    project_in_first.name = "Mutated in memory"
+
+    project_in_second = second_example.small_project(:project)
+    assert_equal "Small Project", project_in_second.name
+    refute_equal project_in_first.object_id, project_in_second.object_id
+
+    assert_equal "Mutated in memory", first_example.small_project(:project).name
+  end
 end
