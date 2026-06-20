@@ -18,6 +18,7 @@ RSpec.configure do |config|
     MoScenes.reset!
     MoScenes.configure { |c| c.scenes_path = SCENES_PATH }
     [Todo, Project, User].each(&:delete_all)
+    MoScenes.runner.ensure_global_scenes_loaded!
   end
 
   config.append_after(:each, :mo_scenes_integration) do

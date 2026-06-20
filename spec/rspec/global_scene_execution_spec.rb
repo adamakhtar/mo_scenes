@@ -25,6 +25,8 @@ RSpec.describe "MoScenes RSpec global scene execution" do
       tracker[:count] += 1
       original.call
     end
+
+    MoScenes.runner.ensure_global_scenes_loaded!
   end
 
   after(:all) do

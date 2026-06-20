@@ -11,7 +11,9 @@ module MoScenes
     def self.install!(config)
       config.include MoScenes::RSpecHelper
 
-      config.prepend_before(:each) do
+      # Load once before any examples so boot errors (syntax, validation, etc.)
+      # abort the suite instead of failing every example's before hook.
+      config.before(:suite) do
         MoScenes.runner.ensure_global_scenes_loaded!
       end
 

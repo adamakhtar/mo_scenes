@@ -3,13 +3,13 @@
 require "mo_scenes/rspec"
 
 RSpec.describe MoScenes::RSpec do
-  FakeConfig = Struct.new(:included_modules, :prepend_before_hooks, :append_after_hooks, :after_suite_hooks, keyword_init: true) do
+  FakeConfig = Struct.new(:included_modules, :before_suite_hooks, :append_after_hooks, :after_suite_hooks, keyword_init: true) do
     def include(mod)
       included_modules << mod
     end
 
-    def prepend_before(*args, &block)
-      prepend_before_hooks << { args: args, block: block }
+    def before(*args, &block)
+      before_suite_hooks << { args: args, block: block }
     end
 
     def append_after(*args, &block)
@@ -27,7 +27,7 @@ RSpec.describe MoScenes::RSpec do
   def build_config
     FakeConfig.new(
       included_modules: [],
-      prepend_before_hooks: [],
+      before_suite_hooks: [],
       append_after_hooks: [],
       after_suite_hooks: []
     )
@@ -46,12 +46,12 @@ RSpec.describe MoScenes::RSpec do
 
     described_class.install!(config)
 
-    expect(config.prepend_before_hooks.first[:args]).to eq([:each])
+    expect(config.before_suite_hooks.first[:args]).to eq([:suite])
     expect(config.append_after_hooks.first[:args]).to eq([:each])
     expect(config.after_suite_hooks.first[:args]).to eq([:suite])
   end
 
-  it "loads global scenes in prepend_before hook" do
+  it "loads global scenes in before suite hook" do
     config = build_config
     described_class.install!(config)
 
@@ -60,7 +60,7 @@ RSpec.describe MoScenes::RSpec do
       called = true
     end
 
-    config.prepend_before_hooks.first[:block].call
+    config.before_suite_hooks.first[:block].call
     expect(called).to be true
   end
 

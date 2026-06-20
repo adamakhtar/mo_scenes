@@ -20,7 +20,7 @@ module MoScenes
       @transaction_open = false
     end
 
-    # Idempotent entry point from TestHelper#before_setup. Runs once per process.
+    # Idempotent entry point from test framework hooks. Runs once per process.
     # Scene load failures are latched and re-raised without retrying — boot errors
     # should fail fast instead of re-running on every example's setup.
     def ensure_global_scenes_loaded!
