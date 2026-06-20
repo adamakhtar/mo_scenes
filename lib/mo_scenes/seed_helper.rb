@@ -21,6 +21,8 @@ module MoScenes
     end
   end
 
+  # Loads scenes for db:seeds / db:scenes:load. Same scene files and Registry
+  # as tests, but no outer transaction — records are committed normally.
   class SeedRunner
     def initialize(registry:, configuration:)
       @registry = registry

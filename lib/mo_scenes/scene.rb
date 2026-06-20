@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 module MoScenes
+  # Base class for scene definitions. Subclasses default to global (loaded once
+  # before the suite). Set `self.global = false` for scenes loaded per test.
   class Scene
     class << self
       def inherited(subclass)
         super
+        # New subclasses are global unless they opt out with self.global = false.
         subclass.instance_variable_set(:@global, true)
         descendants << subclass
       end
@@ -29,6 +32,7 @@ module MoScenes
         @global
       end
 
+      # UsersScene -> :users, SmallProjectScene -> :small_project
       def scene_name
         raw = self.name || self.to_s
         underscored = raw.gsub(/::/, "_")
@@ -54,6 +58,7 @@ module MoScenes
 
     private
 
+    # Cross-scene reference helper: scene(:users).admin
     def scene(name)
       @registry.scene_result(name)
     end

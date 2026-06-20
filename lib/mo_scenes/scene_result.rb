@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module MoScenes
+  # Wraps a scene's #call hash. method_missing enables scene(:users).admin
+  # dot-access inside other scenes' #call methods.
   class SceneResult
     def initialize(records_hash)
       @records = records_hash.transform_keys(&:to_sym)

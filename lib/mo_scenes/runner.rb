@@ -3,6 +3,12 @@
 require "active_record"
 
 module MoScenes
+  # Orchestrates scene file loading, the suite-wide outer transaction, and
+  # dynamic accessor methods on TestHelper (e.g. users(:admin)).
+  #
+  # Global flow: load files -> begin outer transaction -> run global scenes ->
+  # define accessors. Per-test flow: load_scene runs one scene inside the current
+  # test savepoint and registers it as per_test in the Registry.
   class Runner
     attr_reader :registry, :configuration
 
@@ -13,6 +19,7 @@ module MoScenes
       @transaction_open = false
     end
 
+    # Idempotent entry point from TestHelper#before_setup. Runs once per process.
     def ensure_global_scenes_loaded!
       return if @global_loaded
 
@@ -23,6 +30,8 @@ module MoScenes
       @global_loaded = true
     end
 
+    # Load a non-global scene inside the current test. Inserts happen in the
+    # test savepoint; registry state is cleared in after_teardown.
     def load_scene(name)
       load_scene_files!
 
@@ -36,6 +45,8 @@ module MoScenes
       define_single_accessor_method!(name)
     end
 
+    # Rolls back all global scene inserts and resets registry. Called from
+    # MoScenes.reset! at suite teardown (or in tests that reset the gem).
     def rollback_global_transaction!
       return unless @transaction_open
 
@@ -64,6 +75,8 @@ module MoScenes
 
     private
 
+    # joinable: false — see MoScenes module overview. Forces Rails' per-test
+    # wrapper to use savepoints so test rollback does not undo global scenes.
     def open_global_transaction!
       ActiveRecord::Base.connection.begin_transaction(joinable: false)
       @transaction_open = true

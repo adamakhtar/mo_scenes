@@ -3,6 +3,15 @@
 require "set"
 
 module MoScenes
+  # Central store for scene classes and loaded scene data.
+  #
+  # @loaded_results — SceneResult wrappers returned by #call (used for cross-scene
+  #   references via scene(:name) inside other scenes).
+  # @pk_map — primary keys per record name; accessors use this for Model.find so
+  #   each test gets objects reflecting post-rollback DB state, not objects
+  #   captured at load time.
+  # @per_test_scenes — names loaded via load_scene; cleared in test teardown
+  #   while global scene entries persist for the whole suite.
   class Registry
     attr_reader :scenes
 
@@ -18,6 +27,8 @@ module MoScenes
       @scenes[name] = scene_class
     end
 
+    # Discover Scene subclasses after require'ing scene files. Skips abstract
+    # base (#call still defined on MoScenes::Scene) and invalid definitions.
     def register_descendants!
       MoScenes::Scene.descendants.each do |klass|
         next unless klass.name && !klass.name.empty?
@@ -42,6 +53,8 @@ module MoScenes
       @scenes.select { |_, klass| klass.global? }.keys
     end
 
+    # Persist a scene's #call result. Global scenes are stored once for the suite;
+    # per_test: true marks the scene for teardown cleanup (see clear_per_test_scenes!).
     def store_result(scene_name, records_hash, per_test: false)
       result = SceneResult.new(records_hash)
       @loaded_results[scene_name] = result
@@ -62,6 +75,9 @@ module MoScenes
       end
     end
 
+    # Used by fixture-style accessors (users(:admin)). Always hits the DB via
+    # Model.find so rolled-back attribute changes from a previous test are not
+    # visible — unlike the in-example @scene_cache on TestHelper instances.
     def fetch(scene_name, record_name)
       scene_data = @pk_map.fetch(scene_name) do
         raise SceneNotLoadedError, "Scene :#{scene_name} has not been loaded."
@@ -82,6 +98,9 @@ module MoScenes
       @loaded_results.key?(scene_name)
     end
 
+    # Drop per-test scene state between examples. Global scene entries stay loaded
+    # for the suite; only @per_test_scenes are removed. DB rows from per-test
+    # scenes roll back via the savepoint — this clears in-memory registry state.
     def clear_per_test_scenes!
       @per_test_scenes.each do |name|
         @loaded_results.delete(name)
@@ -90,6 +109,7 @@ module MoScenes
       @per_test_scenes.clear
     end
 
+    # Full wipe when the outer global transaction is rolled back (suite teardown).
     def reset!
       @loaded_results.clear
       @pk_map.clear
