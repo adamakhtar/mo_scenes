@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "active_record"
-require "mo_scenes"
 require "mo_scenes/rspec"
 
 require_relative "../dummy/config/application"

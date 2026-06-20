@@ -78,7 +78,7 @@ end
 **Minitest** — in `test/test_helper.rb`:
 
 ```ruby
-require "mo_scenes"
+require "mo_scenes/minitest"
 
 class ActiveSupport::TestCase
   include MoScenes::TestHelper

@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "mo_scenes"
 require "mo_scenes/rspec"
 
 RSpec.describe MoScenes::RSpec do

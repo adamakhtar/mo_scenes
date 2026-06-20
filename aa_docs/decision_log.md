@@ -123,7 +123,7 @@ end
 
 **Decision:** Framework-specific code lives in `lib/mo_scenes/minitest/` and `lib/mo_scenes/rspec/`. Shared example API is in `MoScenes::ExampleGroupHelper`; dynamic accessors are defined there by Runner.
 
-**Minitest:** `MoScenes::TestHelper` (alias for `MoScenes::Minitest::TestHelper`) prepends lifecycle hooks on `before_setup` / `after_teardown`. `Minitest.after_run` rolls back the outer transaction.
+**Minitest:** Opt-in via `require "mo_scenes/minitest"`. `MoScenes::TestHelper` prepends lifecycle hooks on `before_setup` / `after_teardown`. `Minitest.after_run` rolls back the outer transaction.
 
 **RSpec:** Opt-in via `require "mo_scenes/rspec"` and `MoScenes::RSpec.install!(RSpec.configuration)`. Uses `prepend_before(:each)`, `append_after(:each)`, and `after(:suite)` for the same lifecycle.
 

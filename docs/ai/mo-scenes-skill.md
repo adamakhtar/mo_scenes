@@ -156,7 +156,7 @@ Per-test scene data is created inside the test transaction/savepoint and rolls b
 **Minitest** — in `test/test_helper.rb`:
 
 ```ruby
-require "mo_scenes"
+require "mo_scenes/minitest"
 
 class ActiveSupport::TestCase
   include MoScenes::TestHelper

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
-require "mo_scenes/test_helper"
+require "mo_scenes/minitest"
 
 class IntegrationSpec < Minitest::Test
   include SceneTestSetup
