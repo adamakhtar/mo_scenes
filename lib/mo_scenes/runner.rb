@@ -16,11 +16,15 @@ module MoScenes
       @registry = registry
       @configuration = configuration
       @global_loaded = false
+      @global_load_error = nil
       @transaction_open = false
     end
 
     # Idempotent entry point from TestHelper#before_setup. Runs once per process.
+    # Scene load failures are latched and re-raised without retrying — boot errors
+    # should fail fast instead of re-running on every example's setup.
     def ensure_global_scenes_loaded!
+      raise @global_load_error if @global_load_error
       return if @global_loaded
 
       load_scene_files!
@@ -28,6 +32,10 @@ module MoScenes
       run_global_scenes!
       define_accessor_methods!
       @global_loaded = true
+    rescue StandardError, ScriptError => e
+      @global_load_error ||= e
+      cleanup_failed_global_load!
+      raise @global_load_error
     end
 
     # Load a non-global scene inside the current test. Inserts happen in the
@@ -48,16 +56,18 @@ module MoScenes
     # Rolls back all global scene inserts and resets registry. Called from
     # MoScenes.reset! at suite teardown (or in tests that reset the gem).
     def rollback_global_transaction!
-      return unless @transaction_open
-
-      ActiveRecord::Base.connection.rollback_transaction
-      @transaction_open = false
+      rollback_open_transaction!
       @global_loaded = false
+      @global_load_error = nil
       registry.reset!
     end
 
     def global_loaded?
       @global_loaded
+    end
+
+    def global_load_failed?
+      !@global_load_error.nil?
     end
 
     def load_scene_files!
@@ -80,6 +90,18 @@ module MoScenes
     def open_global_transaction!
       ActiveRecord::Base.connection.begin_transaction(joinable: false)
       @transaction_open = true
+    end
+
+    def cleanup_failed_global_load!
+      rollback_open_transaction!
+      registry.reset!
+    end
+
+    def rollback_open_transaction!
+      return unless @transaction_open
+
+      ActiveRecord::Base.connection.rollback_transaction
+      @transaction_open = false
     end
 
     def run_global_scenes!

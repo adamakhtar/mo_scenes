@@ -78,6 +78,32 @@ class MinitestTestHelperSpec < Minitest::Test
 
     assert_equal 1, call_count
   end
+
+  def test_latched_global_load_failure_does_not_retry_per_example
+    setup_mo_scenes
+    run_count = 0
+    MoScenes.runner.define_singleton_method(:run_global_scenes!) do
+      run_count += 1
+      raise "boom"
+    end
+
+    body_ran = []
+    test_class = Class.new(Minitest::Test) do
+      include MoScenes::TestHelper
+
+      define_method(:test_first) { body_ran << :first; flunk "example body should not run" }
+      define_method(:test_second) { body_ran << :second; flunk "example body should not run" }
+    end
+
+    first = test_class.new(:test_first).run
+    second = test_class.new(:test_second).run
+
+    assert_equal 1, run_count
+    assert MoScenes.runner.global_load_failed?
+    refute first.passed?
+    refute second.passed?
+    assert_empty body_ran
+  end
 end
 
 class MinitestSuiteTeardownSpec < Minitest::Test

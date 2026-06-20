@@ -75,4 +75,83 @@ class RunnerSpec < Minitest::Test
     err = assert_raises(MoScenes::SceneDefinitionError) { MoScenes.runner.load_scene(:bad_return) }
     assert_includes err.message, "must return a Hash"
   end
+
+  def test_global_scene_call_failure_latches_error_without_retry
+    runner = MoScenes.runner
+    run_count = 0
+    txn_count = 0
+    original_open = runner.method(:open_global_transaction!)
+    runner.define_singleton_method(:run_global_scenes!) do
+      run_count += 1
+      raise "boom"
+    end
+    runner.define_singleton_method(:open_global_transaction!) do
+      txn_count += 1
+      original_open.call
+    end
+
+    first = assert_raises(RuntimeError) { runner.ensure_global_scenes_loaded! }
+    second = assert_raises(RuntimeError) { runner.ensure_global_scenes_loaded! }
+
+    assert_equal "boom", first.message
+    assert_same first, second
+    assert runner.global_load_failed?
+    refute runner.global_loaded?
+    assert_equal 1, run_count
+    assert_equal 1, txn_count
+  end
+
+  def test_global_scene_call_failure_rolls_back_partial_load
+    runner = MoScenes.runner
+    runner.load_scene_files!
+
+    runner.define_singleton_method(:run_global_scenes!) do
+      registry.global_scene_names.each do |name|
+        scene_class = registry.scenes[name]
+        result = scene_class.new(registry).call
+        validate_scene_result!(name, result)
+        registry.store_result(name, result)
+        raise "boom after partial load" if name == :users
+      end
+    end
+
+    assert_raises(RuntimeError) { runner.ensure_global_scenes_loaded! }
+
+    refute runner.global_loaded?
+    refute MoScenes.registry.loaded?(:users)
+    assert_equal 0, User.count
+    assert_equal 0, Project.count
+  end
+
+  def test_global_scene_non_hash_failure_latches_without_retry
+    runner = MoScenes.runner
+    run_count = 0
+    runner.define_singleton_method(:run_global_scenes!) do
+      run_count += 1
+      raise MoScenes::SceneDefinitionError,
+        "Scene :bad #call must return a Hash of { name => record }, got String"
+    end
+
+    first = assert_raises(MoScenes::SceneDefinitionError) { runner.ensure_global_scenes_loaded! }
+    second = assert_raises(MoScenes::SceneDefinitionError) { runner.ensure_global_scenes_loaded! }
+
+    assert_same first, second
+    assert_includes first.message, "must return a Hash"
+    assert_equal 1, run_count
+  end
+
+  def test_reset_clears_latched_global_load_error
+    runner = MoScenes.runner
+    runner.define_singleton_method(:run_global_scenes!) { raise "boom" }
+
+    assert_raises(RuntimeError) { runner.ensure_global_scenes_loaded! }
+    assert runner.global_load_failed?
+
+    MoScenes.reset!
+    setup_mo_scenes
+    refute MoScenes.runner.global_load_failed?
+
+    MoScenes.runner.ensure_global_scenes_loaded!
+    assert MoScenes.runner.global_loaded?
+  end
 end
