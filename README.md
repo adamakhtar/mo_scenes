@@ -1,5 +1,7 @@
 # MoScenes
 
+> **Disclaimer:** This gem is for personal use. It is not battle-tested for production and is provided as-is. I do not respond to issues or pull requests — please feel free to fork and adapt it for your own needs.
+
 Scene-based test data bootstrapping for Rails. An alternative to YAML fixtures.
 
 Define test data as Ruby classes ("scenes") that create ActiveRecord records once before the test suite, wrapped in a transaction for fast per-test rollback. No YAML, no factories-per-test, no slow inserts.
